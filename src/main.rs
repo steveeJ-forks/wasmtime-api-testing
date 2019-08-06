@@ -18,6 +18,8 @@ fn load_and_run_wasm() {
         enable_verifier: false,
         set_debug_info: false,
     };
+
+    // Prepare inputs to handle_module.
     let mut context = context_builder.try_build().unwrap();
     let function = String::from("add");
     let function_execute = Some(&function);
@@ -27,6 +29,7 @@ fn load_and_run_wasm() {
     println!("Done.");
 }
 
+// Everything from here below was taken from @steveeJ's initial API draft here: https://github.com/steveeJ-forks/wasmtime/blob/pr/wasmtime-api/src/libwasmtime.rs
 pub struct ContextBuilder<'a> {
     pub opt_level: Option<&'a str>,
     pub enable_verifier: bool,
@@ -55,6 +58,7 @@ impl<'a> ContextBuilder<'a> {
 
         let isa = isa_builder.finish(settings::Flags::new(flag_builder));
 
+        // set_debug_info removed because it was causing context to be empty.
         let context = Context::with_isa(isa); //set_debug_info(self.set_debug_info);
 
         Ok(context)
