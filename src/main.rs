@@ -3,21 +3,46 @@ use cranelift_native;
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
-use wasmtime_jit::RuntimeValue;
-use wasmtime_jit::{ActionOutcome, Context};
+use std::process::Command;
+use wasmtime_jit::{ActionOutcome, Context, RuntimeValue};
+use wasmtime_wasi::instantiate_wasi;
 
 fn main() {
+    println!("Building WASM binary.");
+    if !Command::new("cargo")
+        .arg("build")
+        .args(&["--target", "wasm32-wasi"])
+        .arg("--release")
+        .args(&["-p", "wasm-source"])
+        .status()
+        .unwrap()
+        .success()
+    {
+        panic!("Build failed.")
+    };
+
     println!("Loading WASM binary.");
-    let binary = File::open("./test.wasm").unwrap();
+    let binary = File::open("target/wasm32-wasi/release/wasm-source.wasm").unwrap();
 
     // In order to run this binary, we need to prepare a few inputs.
     // First, we need a Context. We can build one with a ContextBuilder.
     let context_builder = ContextBuilder {
         opt_level: None,
         enable_verifier: false,
-        set_debug_info: false,
+        set_debug_info: true,
     };
     let mut context = context_builder.try_build().unwrap();
+
+    // Instantiate WASI as we're going to run a WASI compliant WASM binary.
+    let wasi = instantiate_wasi(
+        "",
+        context.get_global_exports(),
+        Default::default(),
+        Default::default(),
+        Default::default(),
+    )
+    .expect("could not assemble WASI instance");
+    context.name_instance("wasi_unstable".to_string(), wasi);
 
     // We also need a WASM function from the binary to execute.
     let function = String::from("add");
@@ -29,9 +54,10 @@ fn main() {
 
     // Finally, let's see the result of that code.
     match result {
-        Some (v) => println!("Output: {:#?}", v),
+        Some(v) => println!("Output: {:#?}", v),
         None => println!("Seems like nothing was output."),
     }
+
     println!("Done.");
 }
 
