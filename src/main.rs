@@ -7,26 +7,27 @@ use wasmtime_jit::RuntimeValue;
 use wasmtime_jit::{ActionOutcome, Context};
 
 fn main() {
-    load_and_run_wasm();
-}
-
-fn load_and_run_wasm() {
     println!("Loading WASM binary.");
-    let f = File::open("./test.wasm").unwrap();
+    let binary = File::open("./test.wasm").unwrap();
 
+    // In order to run this binary, we need to prepare a few inputs.
+    // First, we need a Context. We can build one with a ContextBuilder.
     let context_builder = ContextBuilder {
         opt_level: None,
         enable_verifier: false,
         set_debug_info: false,
     };
-
-    // Prepare inputs to handle_module.
     let mut context = context_builder.try_build().unwrap();
+
+    // We also need a WASM function from the binary to execute.
     let function = String::from("add");
     let function_execute = Some(&function);
 
+    // Now, we actually execute the code via handle_module.
     println!("Running module and invoking function: {}", function);
-    let result = handle_module(&mut context, f, function_execute).unwrap();
+    let result = handle_module(&mut context, binary, function_execute).unwrap();
+
+    // Finally, let's see the result of that code.
     println!("Got result {:#?}", result);
     println!("Done.");
 }
