@@ -28,7 +28,10 @@ fn main() {
     let result = handle_module(&mut context, binary, function_execute).unwrap();
 
     // Finally, let's see the result of that code.
-    println!("Got result {:#?}", result);
+    match result {
+        Some (v) => println!("Output: {:#?}", v),
+        None => println!("Seems like nothing was output."),
+    }
     println!("Done.");
 }
 
