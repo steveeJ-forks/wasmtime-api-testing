@@ -3,6 +3,7 @@ use cranelift_native;
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
+use wasmtime_jit::RuntimeValue;
 use wasmtime_jit::{ActionOutcome, Context};
 
 fn main() {
@@ -25,7 +26,8 @@ fn load_and_run_wasm() {
     let function_execute = Some(&function);
 
     println!("Running module and invoking function: {}", function);
-    handle_module(&mut context, f, function_execute).unwrap();
+    let result = handle_module(&mut context, f, function_execute).unwrap();
+    println!("Got result {:#?}", result);
     println!("Done.");
 }
 
@@ -89,7 +91,7 @@ pub fn handle_module<T>(
     context: &mut Context,
     module: T,
     flag_invoke: Option<&String>,
-) -> Result<(), String>
+) -> Result<Option<Vec<RuntimeValue>>, String>
 where
     T: std::io::Read,
 {
@@ -107,12 +109,12 @@ where
             .invoke(&mut instance, f, &[])
             .map_err(|e| e.to_string())?
         {
-            ActionOutcome::Returned { .. } => {}
+            ActionOutcome::Returned { values } => Ok(Some(values)),
             ActionOutcome::Trapped { message } => {
-                return Err(format!("Trap from within function {}: {}", f, message));
+                Err(format!("Trap from within function {}: {}", f, message))
             }
         }
+    } else {
+        Ok(None)
     }
-
-    Ok(())
 }
